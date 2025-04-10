@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">CameraApp</string>
+    <string name="ipn_theme">Guinda</string>
+    <string name="escom_theme">Azul</string>
+    <string name="open_camera">Abrir Cámara</string>
+    <string name="record_audio">Grabar Audio</string>
+    <string name="view_gallery">Ver Galería</string>
+    <string name="select_theme">Tema:</string>
+</resources>

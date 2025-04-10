@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@color/white"
+        android:padding="24dp">
+
+    <TextView
+            android:id="@+id/tvTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00:00"
+            android:textSize="32sp"
+            android:layout_marginBottom="32dp"/>
+
+    <SeekBar
+            android:id="@+id/seekBarSensitivity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"/>
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sensibilidad"
+            android:layout_marginBottom="8dp"/>
+
+    <ImageButton
+            android:id="@+id/btnRecord"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@drawable/ic_mic"
+            android:layout_marginTop="32dp"
+            android:background="@drawable/bg_button"/>
+
+    <ProgressBar
+            android:id="@+id/progressBarLevel"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:layout_marginTop="24dp"/>
+</LinearLayout>
