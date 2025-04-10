@@ -54,12 +54,5 @@
                 android:src="@drawable/ic_switch_camera"
                 android:background="@drawable/bg_button" />
 
-        <ImageButton
-                android:id="@+id/btnFilters"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_filter"
-                android:background="@drawable/bg_button"
-                android:layout_marginTop="8dp" />
     </LinearLayout>
 </RelativeLayout>

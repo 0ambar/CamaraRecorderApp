@@ -12,11 +12,8 @@ import android.os.Bundle
 import android.os.HandlerThread
 import android.view.TextureView
 import android.widget.ImageButton
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.example.cameraapp.R
 import android.Manifest
 import android.annotation.SuppressLint
@@ -54,6 +51,8 @@ class CameraActivity : AppCompatActivity() {
     private var backgroundHandler: Handler? = null
     private var backgroundThread: HandlerThread? = null
     private var isFlashOn = false
+    private var facingFront = false // Bandera para rastrear qué cámara está activa
+    private var cameraIdList: Array<String> = emptyArray() // Lista de cámaras disponibles
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,17 +84,38 @@ class CameraActivity : AppCompatActivity() {
 
     private fun openCamera() {
         try {
-            cameraId = cameraManager.cameraIdList[0]
-            val characteristics = cameraManager.getCameraCharacteristics(cameraId!!)
-            val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+            cameraIdList = cameraManager.cameraIdList
+
+            // Si no hay cámaras disponibles, mostrar error
+            if (cameraIdList.isEmpty()) {
+                Toast.makeText(this, "No se encontraron cámaras", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            // Determinar qué cámara usar basado en el estado actual
+            cameraId = if (facingFront) {
+                cameraIdList.find { id ->
+                    cameraManager.getCameraCharacteristics(id)
+                        .get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
+                } ?: cameraIdList[0] // Si no encuentra frontal, usa la primera disponible
+            } else {
+                cameraIdList.find { id ->
+                    cameraManager.getCameraCharacteristics(id)
+                        .get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
+                } ?: cameraIdList[0] // Si no encuentra trasera, usa la primera disponible
+            }
 
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 cameraManager.openCamera(cameraId!!, stateCallback, null)
+            } else {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA_PERMISSION)
             }
         } catch (e: CameraAccessException) {
             e.printStackTrace()
+            Toast.makeText(this, "Error al acceder a la cámara", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     private val stateCallback = object : CameraDevice.StateCallback() {
         override fun onOpened(camera: CameraDevice) {
@@ -114,6 +134,7 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
+
     private fun createCameraPreviewSession() {
         try {
             val texture = textureView.surfaceTexture?.apply {
@@ -129,6 +150,17 @@ class CameraActivity : AppCompatActivity() {
                     CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
                 )
+
+                // Configurar orientación basada en la cámara frontal/trasera
+                if (facingFront) {
+                    this?.set(CaptureRequest.JPEG_ORIENTATION, 270) // Rotación para cámara frontal
+                } else {
+                    this?.set(CaptureRequest.JPEG_ORIENTATION, 90) // Rotación para cámara trasera
+                }
+
+                if (isFlashOn) {
+                    this?.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_SINGLE)
+                }
             }
 
             cameraDevice?.createCaptureSession(
@@ -182,29 +214,23 @@ class CameraActivity : AppCompatActivity() {
             return
         }
 
-        val storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/Camera")
+        val storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/CameraApp/Photos")
         if (!storageDir.exists()) {
             storageDir.mkdirs()
         }
 
         try {
-            // 1. Crear archivo para la foto
-//            val file = File(
-//                getExternalFilesDir(Environment.DIRECTORY_PICTURES),
-//                "IMG_${System.currentTimeMillis()}.jpg"
-//            )
+            // 1. Crear archivo para la fotos
             val file = File(
                     storageDir,
             "IMG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.jpg"
             )
 
-            val path = getExternalFilesDir(Environment.DIRECTORY_PICTURES)?.absolutePath
-            Toast.makeText(this, "$path", Toast.LENGTH_LONG).show()
 
             // 2. Configurar ImageReader
             val imageReader = ImageReader.newInstance(
-                1920,
-                1080,
+                textureView.width,
+                textureView.height,
                 ImageFormat.JPEG,
                 1
             ).apply {
@@ -325,7 +351,18 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun switchCamera() {
-        // Implementar cambio de cámara
+        // Cerrar la cámara actual antes de cambiar
+        cameraCaptureSession?.close()
+        cameraCaptureSession = null
+
+        cameraDevice?.close()
+        cameraDevice = null
+
+        // Alternar entre frontal/trasera
+        facingFront = !facingFront
+
+        // Reabrir la cámara con la nueva configuración
+        openCamera()
     }
 
     override fun onResume() {
@@ -358,5 +395,9 @@ class CameraActivity : AppCompatActivity() {
         } catch (e: InterruptedException) {
             e.printStackTrace()
         }
+    }
+
+    companion object {
+        private const val REQUEST_CAMERA_PERMISSION = 100
     }
 }
